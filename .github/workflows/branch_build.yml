@@ -14,7 +14,7 @@ jobs:
     runs-on: "ubuntu-latest"
     services:
       app:
-        image: "ghcr.io/glpi-project/githubactions-php:${{ github.event.inputs.php-version }}"
+        image: "ghcr.io/glpi-project/githubactions-php:${{ github.event.inputs.php-version }}-bcmath"
         options: >-
           --volume /glpi:/var/www/glpi
     steps:
@@ -26,14 +26,10 @@ jobs:
           sudo cp --no-target-directory --preserve --recursive `pwd` /glpi
           sudo chown -R 1000:1000 /glpi
 
-      - name: "Install PHP bcmath extension inside container"
-        run: |
-          docker exec ${{ job.services.app.id }} apt-get update
-          docker exec ${{ job.services.app.id }} apt-get install -y php-bcmath
-
       - name: "Install dependencies"
         run: |
-          docker exec ${{ job.services.app.id }} composer install --optimize-autoloader --prefer-dist --no-interaction --no-progress --no-suggest
+          docker exec ${{ job.services.app.id }} composer install \
+            --optimize-autoloader --prefer-dist --no-interaction --no-progress --no-suggest
 
       - name: "Define release name"
         run: |
@@ -44,10 +40,10 @@ jobs:
       - name: "Build"
         run: |
           docker exec --interactive ${{ job.services.app.id }} tools/make_release.sh -y . ${{ env.release_name }}
-          docker cp ${{ job.services.app.id }}:/tmp/glpi-${{ env.release_name }}.tgz ${{ github.workspace }}/${{ env.release_name }}.tar.gz
+          docker cp ${{ job.services.app.id }}:/tmp/glpi-${{ env.release_name }}.tgz ${{ github.workspace }}/${{ env.release_name }}.tar.gz
 
       - name: "Store archive"
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.release_name }}.tar.gz
-          path: ${{ github.workspace }}/${{ env.release_name }}.tar.gz
+          path: ${{ github.workspace }}/${{ env.release_name }}.tar.gz
